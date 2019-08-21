@@ -1,0 +1,95 @@
+Test Mondora - Biscotti Folini Christian 21/08/2019
+
+accedere alla VM (è una distribuzione Ubuntu 18.04). La VM è raggiungibile in SSH (tcp/22), HTTP (tcp/80) e HTTPS (tcp/443); 
+·         installare Docker CE; 
+·         creare a partire da questa immagine https://hub.docker.com/_/maven/ un Docker Container che esegua questo servizio: https://github.com/davidkiss/yourl;
+·         avviare l'immagine Docker che hai buildato sulla VM Ubuntu;
+·         installare Nginx per esporre il servizio 'yourl'. Come best practice dovresti configurare Nginx con https://letsencrypt.org/ per esporre il servizio in HTTPS; 
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------	
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------	
+
+INIZIO
+
+Step seguiti per la creazione delle immagini e dei container SENZA dockerfile:
+
+1) installazione di Docker CE;
+
+2) Scarico immagine Maven;
+   - sudo docker pull maven
+ 
+3) Creazione del Container basato su Maven;
+   - sudo docker create --name c_testbiscotti_monora -p 8080 maven:lastest
+   
+4) Creazione di una struttura di folder dove mettere i sorgenti di Yourl;
+   - /opt/dockerapp/davidkiss_yourl
+   
+5) Scarico su file system i sorgenti del progetto;
+   - Sudo git clone https://github.com/davidkiss/yourl.git
+   
+6) Modifica del file pom.xml;
+   - a seguito di alcuni problemi riscontrati con conseguente con build failure del progetton ho dovuto modificare il file pom.xlm per risolvere,
+     le modifiche le vedete nel file /opt/dockerapp/davidkiss_yourl/pom.xml
+
+7) una volta sistemato ho creato il primo container senza dockerfile con il seguente comando:
+   - sudo docker run -it -p 8080:8080 --name c_testbiscotti_mondora_yourl -v "$(pwd)":/usr/src/mymaven_yourl -w /usr/src/mymaven_yourl maven:lastest mvn spring-boot:run
+
+8) Installazione di Nginx;
+   
+9) creazione della struttura di server block per dominio
+
+10) configurazione del file /etc/nginx/sites-available/pr-bisco(...):
+    - reverse proxy
+    - proxy redirect
+    - remove nginx version from Server header banner
+    - creazione link del file sotto /etc/nginx/sites-enabled/
+	
+11) configurazione della parte di certificato SSL con https://letsencrypt.org
+    - installazione di Certbot con pluggin per Nginx
+    - creazione certificato con certbot
+	
+	
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------	
+
+Step seguiti per la creazione dell'immagine e del container usando il dockerfile:
+
+1) nella stessa cartella dove sono presenti i file necessari per il funzionamento del servizio Yourl, ho creato il dockerfile
+   - il dockerfile si trova nella cartella /opt/dockerapp/davidkiss_yourl/
+   - all'interno del dockerfile ho inserito i comandi di COPY - WORKDIR e CMD 
+     questo perchè avendo modificato il file pom.xml non potevo mettere l'istruzione per scaricare il pacchetto direttamente nel dockerfile
+
+2) creazione dell'immagine basata su dockerfile
+   - sudo docker build -t "img_testbiscotti_mondora_yourl_dokerfile:latest" .
+
+3) creazione del container basato su immagine "img_testbiscotti_mondora_yourl_dokerfile:latest"
+   - sudo docker run -d -it -p 8080:8080 --name="con_testbiscotti_mondora_yourl_dockerfile" "img_testbiscotti_mondora_yourl_dokerfile"
+   
+4) per la parte di nginx non ho fatto niente perchè già configurata
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------	
+
+Comandi per start container applicazione Yourl con servizio nginx già in started:
+I container sono stati configurati sulla stessa porta quindi possono girare uno alla volta.
+
+1) start container creato senza dockerfile
+   - sudo docker start "c_testbiscotti_mondora_yourl"
+
+2) test del servizio: 
+   - puntare url http://"hostname macchina ubuntu" o https://"hostname macchina ubuntu"
+
+3) stop container creato senza dockerfile
+   -  sudo docker stop "c_testbiscotti_mondora_yourl"
+   
+4) start container creato con dockerfile
+   - sudo docker start "con_testbiscotti_mondora_yourl_dockerfile"
+   
+5) test del servizio: 
+   - puntare url http://"hostname macchina ubuntu" o https://"hostname macchina ubuntu"
+
+6) stop container creato senza dockerfile
+   -  sudo docker stop "con_testbiscotti_mondora_yourl_dockerfile"
+
+
+FINE
+
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------	
